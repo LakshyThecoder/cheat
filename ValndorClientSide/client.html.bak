@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valndor - Remote Access</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 3px solid #e91e63;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .status.connected {
+            background: #4caf50;
+            border-color: #45a049;
+        }
+
+        .status.disconnected {
+            background: #f44336;
+            border-color: #da190b;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .screen-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #e91e63;
+            overflow: hidden;
+        }
+
+        .screen-label {
+            background: #f5f5f5;
+            padding: 12px 20px;
+            border-bottom: 2px solid #e91e63;
+            font-weight: 600;
+            color: #e91e63;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .screen-container {
+            flex: 1;
+            overflow: auto;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            border-bottom: 2px solid #e91e63;
+        }
+
+        #remoteScreen {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: crosshair;
+            transition: transform 0.2s;
+        }
+
+        .control-panel {
+            width: 380px;
+            background: linear-gradient(180deg, #f8f9fa 0%, #f0f2f5 100%);
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+            gap: 20px;
+        }
+
+        .control-section {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-section h3 {
+            margin-bottom: 12px;
+            color: #e91e63;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 700;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #d81b60 0%, #ad1457 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ea1c63 0%, #c62828 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #fb8c00 0%, #e65100 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #66bb6a 0%, #2e7d32 100%);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e91e63;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.3s;
+            resize: vertical;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #c2185b;
+            box-shadow: 0 0 15px rgba(233, 30, 99, 0.2);
+        }
+
+        textarea {
+            min-height: 80px;
+            max-height: 150px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 5px solid #2196f3;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #1565c0;
+            line-height: 1.5;
+        }
+
+        .keyboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .keyboard-grid button {
+            padding: 10px;
+            font-size: 10px;
+        }
+
+        .fps-display {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            padding: 12px;
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            border-radius: 8px;
+            font-weight: 600;
+            border: 2px solid #fbc02d;
+        }
+
+        .fps-stat {
+            display: inline-block;
+            margin: 0 8px;
+            color: #e91e63;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #e91e63;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .send-btn-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .send-btn-wrapper textarea {
+            flex: 1;
+        }
+
+        .send-btn-wrapper button {
+            padding: 12px 16px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .screen-section {
+                border-right: none;
+                border-bottom: 2px solid #e91e63;
+            }
+
+            .control-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ Valndor - Remote Control</h1>
+            <div class="status disconnected" id="status">Connecting...</div>
+        </div>
+
+        <div class="main-content">
+            <div class="screen-section">
+                <div class="screen-container">
+                    <img id="remoteScreen" alt="Remote Screen" style="display: none;">
+                    <div class="loading" id="loadingScreen"></div>
+                </div>
+                <div class="fps-display">
+                    FPS: <span id="fpsMeter">0</span> | Ping: <span id="pingMeter">0ms</span>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-section">
+                    <h3>Connection Info</h3>
+                    <div class="info-box" id="infoBox">
+                        <strong>Status:</strong> <span id="connectionStatus">Connecting...</span><br>
+                        <strong>Host:</strong> <span id="hostInfo">-</span><br>
+                        <strong>System:</strong> <span id="systemInfo">-</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Mouse Control</h3>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="sendMouseClick('left')">Left Click</button>
+                        <button class="btn-primary" onclick="sendMouseClick('right')">Right Click</button>
+                        <button class="btn-primary" onclick="sendMouseClick('middle')">Middle Click</button>
+                        <button class="btn-warning" onclick="sendMouseClick('double')">Double Click</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="sendKey('escape')">Escape</button>
+                        <button class="btn-primary" onclick="sendKey('return')">Enter</button>
+                        <button class="btn-primary" onclick="sendKey('tab')">Tab</button>
+                        <button class="btn-primary" onclick="sendKey('backspace')">Backspace</button>
+                        <button class="btn-primary" onclick="sendKey('delete')">Delete</button>
+                        <button class="btn-primary" onclick="sendKey('home')">Home</button>
+                        <button class="btn-primary" onclick="sendKey('end')">End</button>
+                        <button class="btn-primary" onclick="sendKey('pageup')">PageUp</button>
+                        <button class="btn-primary" onclick="sendKey('pagedown')">PageDown</button>
+                        <button class="btn-primary" onclick="sendKey('up')">Up</button>
+                        <button class="btn-primary" onclick="sendKey('down')">Down</button>
+                        <button class="btn-primary" onclick="sendKey('left')">Left</button>
+                        <button class="btn-primary" onclick="sendKey('right')">Right</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Text Input</h3>
+                    <input type="text" id="textInput" placeholder="Type text and press Enter" 
+                           onkeypress="if(event.key==='Enter') { sendText(); }">
+                    <button class="btn-primary" style="margin-top: 8px; width: 100%;" onclick="sendText()">Send Text</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>System Control</h3>
+                    <button class="btn-warning" style="width: 100%;" onclick="sendKey('f5')">Refresh Screen (F5)</button>
+                    <button class="btn-warning" style="width: 100%; margin-top: 8px;" onclick="togglePause()">
+                        <span id="pauseBtn">Pause</span> Stream
+                    </button>
+                </div>
+
+                <div class="control-section">
+                    <h3>Settings</h3>
+                    <label>
+                        <input type="checkbox" id="autoConnect" checked> Auto-Refresh
+                    </label><br><br>
+                    <label>
+                        Refresh Rate:
+                        <input type="range" id="fpsSlider" min="1" max="30" value="10" 
+                               onchange="updateRefreshRate(this.value)">
+                        <span id="fpsValue">10</span> FPS
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        let isConnected = false;
+        let isStreaming = true;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+        let lastPingTime = 0;
+        let refreshInterval = 100; // ms (1000/10 = 100ms for 10 FPS)
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            getServerInfo();
+            startScreenStream();
+        });
+
+        // Get server information
+        async function getServerInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/info`);
+                const data = await response.json();
+                
+                if (data.connected) {
+                    isConnected = true;
+                    updateConnectionStatus('Connected', true);
+                    document.getElementById('hostInfo').textContent = `${data.hostname} (${data.ip}:${data.port})`;
+                    document.getElementById('systemInfo').textContent = data.system;
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                updateConnectionStatus('Failed to connect', false);
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(message, connected) {
+            document.getElementById('connectionStatus').textContent = message;
+            const statusEl = document.getElementById('status');
+            const infoBox = document.getElementById('infoBox');
+            
+            if (connected) {
+                statusEl.classList.remove('disconnected');
+                statusEl.classList.add('connected');
+                statusEl.textContent = '✓ Connected';
+            } else {
+                statusEl.classList.remove('connected');
+                statusEl.classList.add('disconnected');
+                statusEl.textContent = '✗ Disconnected';
+            }
+        }
+
+        // Screen streaming
+        async function startScreenStream() {
+            while (true) {
+                if (isStreaming && isConnected) {
+                    await captureScreen();
+                }
+                await new Promise(resolve => setTimeout(resolve, refreshInterval));
+            }
+        }
+
+        async function captureScreen() {
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/screen`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const img = document.getElementById('remoteScreen');
+                    img.src = 'data:image/jpeg;base64,' + data.image;
+                    img.style.display = 'block';
+                    
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    
+                    frameCount++;
+                    lastPingTime = Date.now() - startTime;
+                    updateFpsCounter();
+                    updatePingCounter();
+                }
+            } catch (error) {
+                console.error('Screen capture error:', error);
+            }
+        }
+
+        function updateFpsCounter() {
+            const now = Date.now();
+            if (now - lastFpsUpdate >= 1000) {
+                document.getElementById('fpsMeter').textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+        }
+
+        function updatePingCounter() {
+            document.getElementById('pingMeter').textContent = lastPingTime + 'ms';
+        }
+
+        // Mouse control
+        async function sendMouseClick(button) {
+            try {
+                const response = await fetch(`${API_BASE}/mouse/click`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ button })
+                });
+                const data = await response.json();
+                if (!data.success) console.error('Click failed:', data.error);
+            } catch (error) {
+                console.error('Mouse click error:', error);
+            }
+        }
+
+        // Keyboard control
+        async function sendKey(key) {
+            try {
+                const response = await fetch(`${API_BASE}/keyboard/key`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+                const data = await response.json();
+                if (!data.success) console.error('Key press failed:', data.error);
+            } catch (error) {
+                console.error('Key press error:', error);
+            }
+        }
+
+        // Text input
+        async function sendText() {
+            const input = document.getElementById('textInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/keyboard/type`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    input.value = '';
+                } else {
+                    console.error('Text input failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Text input error:', error);
+            }
+        }
+
+        // Mouse movement tracking
+        document.getElementById('remoteScreen').addEventListener('mousemove', (e) => {
+            const img = e.target;
+            const rect = img.getBoundingClientRect();
+            
+            // Calculate actual remote screen coordinates
+            const scaleX = img.naturalWidth / img.width;
+            const scaleY = img.naturalHeight / img.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            fetch(`${API_BASE}/mouse/move`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: Math.floor(x), y: Math.floor(y) })
+            }).catch(console.error);
+        });
+
+        // Pause/resume streaming
+        function togglePause() {
+            isStreaming = !isStreaming;
+            document.getElementById('pauseBtn').textContent = isStreaming ? 'Pause' : 'Resume';
+        }
+
+        // Update refresh rate
+        function updateRefreshRate(value) {
+            refreshInterval = Math.floor(1000 / value);
+            document.getElementById('fpsValue').textContent = value;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                captureScreen();
+            }
+        });
+    </script>
+</body>
+</html>

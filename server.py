@@ -12,6 +12,7 @@ import json
 import subprocess
 import platform
 import base64
+import ipaddress
 import sys
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
@@ -74,14 +75,86 @@ server_active = True
 client_connected = False
 last_screenshot = None
 
+def get_ipv4_candidates():
+    candidates = []
+
+    # UDP socket trick (gets primary route IP)
+    for target in [("8.8.8.8", 80), ("1.1.1.1", 80)]:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(target)
+            candidates.append(s.getsockname()[0])
+        except Exception:
+            pass
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+
+    # Hostname resolution
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None):
+            candidates.append(info[4][0])
+    except Exception:
+        pass
+
+    # Windows ipconfig fallback
+    if platform.system().lower().startswith('win'):
+        try:
+            output = subprocess.check_output(["ipconfig"], text=True, encoding="utf-8", errors="ignore")
+            for line in output.splitlines():
+                if "IPv4 Address" in line or "IPv4 Address." in line:
+                    parts = line.split(":")
+                    if len(parts) > 1:
+                        ip = parts[-1].strip()
+                        candidates.append(ip)
+        except Exception:
+            pass
+
+    # De-duplicate while preserving order
+    seen = set()
+    uniq = []
+    for ip in candidates:
+        if ip not in seen:
+            seen.add(ip)
+            uniq.append(ip)
+    return uniq
+
 def get_local_ip():
     """Get the local IP address of the machine"""
     try:
-        # Get hostname and convert to IP
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
-        return local_ip
-    except:
+        def is_preferred(ip_str):
+            try:
+                ip = ipaddress.ip_address(ip_str)
+            except ValueError:
+                return False
+            if ip.version != 4:
+                return False
+            # Prefer RFC1918 private ranges, exclude CGNAT 100.64.0.0/10
+            if ip.is_private and not ipaddress.ip_network("100.64.0.0/10").supernet_of(ipaddress.ip_network(f"{ip}/32")):
+                return True
+            return False
+
+        candidates = get_ipv4_candidates()
+
+        # Choose best candidate
+        for ip in candidates:
+            if is_preferred(ip):
+                return ip
+
+        # Fallback: first non-loopback IPv4
+        for ip in candidates:
+            try:
+                addr = ipaddress.ip_address(ip)
+                if addr.version == 4 and not addr.is_loopback:
+                    return ip
+            except ValueError:
+                continue
+
+        return "127.0.0.1"
+    except Exception:
         return "127.0.0.1"
 
 def capture_screen():
@@ -270,15 +343,18 @@ def get_info():
 def print_server_info():
     """Print server connection info"""
     local_ip = get_local_ip()
+    all_ips = get_ipv4_candidates()
     print("\n" + "="*60)
     print("🖥️  VALNDOR - REMOTE ACCESS SERVER STARTED")
     print("="*60)
     print(f"Local IP: {local_ip}")
+    if all_ips:
+        print(f"All IPv4: {', '.join(all_ips)}")
     print(f"Port: {PORT}")
     print(f"URL: http://{local_ip}:{PORT}")
     print(f"Hostname: {socket.gethostname()}")
     print("\nInstructions:")
-    print("1. On the client machine, visit: http://{local_ip}:{PORT}")
+    print(f"1. On the client machine, visit: http://{local_ip}:{PORT}")
     print("2. Make sure both machines are on the same WiFi network")
     print("3. To stop the server, use Task Manager (Ctrl+Shift+Esc)")
     print("   and end the Python process")

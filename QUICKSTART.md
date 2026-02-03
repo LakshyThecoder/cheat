@@ -132,10 +132,9 @@ Look for "inet" under your WiFi interface
 
 ## Security Reminder
 
-⚠️ This app is for **local network only**  
+⚠️ This app is for **local network only** by default.  
 - Use on trusted WiFi only
 - Don't expose to the internet without proper security
-- No password protection by default - add if needed for production
 
 ---
 

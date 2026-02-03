@@ -1,8 +1,8 @@
 
 
-# Remote Access Application
+# Vanldor Remote Access Application
 
-A lightweight, browser-based remote access tool for controlling a computer over a local WiFi network.
+Valndor is a lightweight, browser-based remote access tool for controlling a computer over a local WiFi network.
 Designed for simplicity, low latency, and ease of deployment using Python and a web interface.
 
 ---
@@ -260,3 +260,4 @@ MIT License
 Free to use, modify, and distribute.
 
 ---
+
